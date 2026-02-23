@@ -1,0 +1,30 @@
+{
+  "_comment": "Copy this file to system_config.json and fill in your values. system_config.json is gitignored.",
+
+  "x": {
+    "_comment_list_id": "Your X/Twitter List ID. Find it in the URL: x.com/i/lists/<LIST_ID>",
+    "list_id": "YOUR_X_LIST_ID_HERE",
+
+    "_comment_cookies": "Path to your X cookies JSON file. See INSTALL.md for how to export cookies.",
+    "cookies_path": "~/.secrets/x_cookies.json",
+
+    "_comment_fetch_count": "Number of tweets to fetch per scrape (max 100 recommended)",
+    "fetch_count": 100,
+
+    "_comment_retention_days": "How many days to keep seen tweet IDs for dedup",
+    "seen_ids_retention_days": 7
+  },
+
+  "discord": {
+    "_comment": "OpenClaw Discord channel IDs for each output stream. Get IDs by right-clicking a channel in Discord (Developer Mode must be on).",
+    "realtime_channel_id": "YOUR_REALTIME_CHANNEL_ID",
+    "alerts_channel_id": "YOUR_ALERTS_CHANNEL_ID",
+    "digest_channel_id": "YOUR_DIGEST_CHANNEL_ID",
+    "alpha_weekly_channel_id": "YOUR_WEEKLY_CHANNEL_ID"
+  },
+
+  "data": {
+    "_comment": "Where to store scraped data. Defaults to skill's data/ directory.",
+    "data_dir": null
+  }
+}

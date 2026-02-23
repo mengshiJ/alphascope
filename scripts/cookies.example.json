@@ -1,0 +1,7 @@
+{
+  "_comment": "Replace with your actual X cookies from browser DevTools",
+  "auth_token": "your_auth_token_here",
+  "ct0": "your_ct0_token_here",
+  "twid": "u%3Dyour_user_id_here",
+  "guest_id": "your_guest_id_here"
+}

@@ -1,0 +1,21 @@
+# === 私密配置 (勿提交) ===
+config/system_config.json
+config/user_profiles.json
+
+# === 用户数据 ===
+data/
+data/history/
+data/seen_ids.json
+data/seen_ids.json.bak
+data/alpha_calls.jsonl
+data/alerts_sent.json
+data/latest_tweets.json
+
+# === Cookies / 密钥 ===
+.secrets/
+*.json.bak
+
+# === Python 缓存 ===
+scripts/__pycache__/
+*.pyc
+*.pyo

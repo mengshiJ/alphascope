@@ -1,0 +1,35 @@
+{
+  "_comment": "Copy this to user_profiles.json and add your KOLs. This file is gitignored.",
+  "users": {
+    "ExampleKOL1": {
+      "category": "developer",
+      "focus": ["AI", "DeFi", "Infrastructure"],
+      "template": "technical",
+      "priority": "high",
+      "template_config": {
+        "emoji": "📦",
+        "sections": ["Project", "Technical Details", "Impact"]
+      }
+    },
+    "ExampleTrader1": {
+      "category": "trader",
+      "focus": ["Macro", "BTC", "ETH", "Altcoins"],
+      "template": "alpha",
+      "priority": "high",
+      "template_config": {
+        "emoji": "📈",
+        "sections": ["Call", "Target", "Timeframe"]
+      }
+    },
+    "ExampleFounder1": {
+      "category": "founder",
+      "focus": ["Base", "Solana", "Product"],
+      "template": "trend",
+      "priority": "medium",
+      "template_config": {
+        "emoji": "🚀",
+        "sections": ["Insight", "Trend", "Opinion"]
+      }
+    }
+  }
+}
