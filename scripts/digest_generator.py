@@ -9,10 +9,25 @@ import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# === 配置 ===
-DATA_DIR = Path("/root/.openclaw/workspace/skills/x-cookie-browser/data")
-CONFIG_DIR = Path("/root/.openclaw/workspace/skills/x-cookie-browser/config")
+# === 配置加载（从 system_config.json 读取，fallback 到默认值）===
+_SKILL_DIR = Path(__file__).parent.parent
+_CONFIG_PATH = _SKILL_DIR / "config" / "system_config.json"
+
+def _load_system_config() -> dict:
+    if _CONFIG_PATH.exists():
+        with open(_CONFIG_PATH) as f:
+            return json.load(f)
+    return {}
+
+_cfg = _load_system_config()
+_data_cfg = _cfg.get("data", {})
+_discord_cfg = _cfg.get("discord", {})
+
+DATA_DIR = Path(_data_cfg.get("data_dir") or _SKILL_DIR / "data")
+CONFIG_DIR = _SKILL_DIR / "config"
 HISTORY_DIR = DATA_DIR / "history"
+
+DIGEST_CHANNEL_ID = _discord_cfg.get("digest_channel_id", "")
 
 # 读取最近多少小时的数据
 DIGEST_HOURS = 6

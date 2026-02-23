@@ -11,6 +11,23 @@ from datetime import datetime
 
 INPUT_PATH = "/tmp/filter_output.json"
 
+# === 读取系统配置 ===
+_SKILL_DIR = Path(__file__).parent.parent
+_CONFIG_PATH = _SKILL_DIR / "config" / "system_config.json"
+
+def _load_system_config() -> dict:
+    if _CONFIG_PATH.exists():
+        with open(_CONFIG_PATH) as f:
+            return json.load(f)
+    return {}
+
+_cfg = _load_system_config()
+_discord_cfg = _cfg.get("discord", {})
+
+# Discord 频道 ID（从 config 读取，fallback 到空字符串会导致发送失败并提示）
+DIGEST_CHANNEL_ID = _discord_cfg.get("digest_channel_id", "")
+REALTIME_CHANNEL_ID = _discord_cfg.get("realtime_channel_id", "")
+
 # 用户画像
 USER_PROFILES = {
     # 中文 KOL
@@ -287,7 +304,7 @@ if __name__ == '__main__':
         
         # 发送到 Discord
         print("\n📤 Sending to Discord...")
-        send_to_discord(zh_report, "1472806948398436575", "中文区日报")
-        send_to_discord(en_report, "1472806948398436575", "英文区日报")
+        send_to_discord(zh_report, DIGEST_CHANNEL_ID, "中文区日报")
+        send_to_discord(en_report, DIGEST_CHANNEL_ID, "英文区日报")
         
         print("\n✅ All tasks complete!")
