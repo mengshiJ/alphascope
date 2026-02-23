@@ -235,26 +235,56 @@ def append_alpha_call(call_dict: dict):
         f.write(json.dumps(call_dict, ensure_ascii=False) + "\n")
 
 
+def load_known_tweet_ids() -> set:
+    """从 alpha_calls.jsonl 加载已记录的 tweet_id，避免重复"""
+    known = set()
+    if ALPHA_CALLS_PATH.exists():
+        with open(ALPHA_CALLS_PATH, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    rec = json.loads(line.strip())
+                    known.add(rec.get("tweet_id", ""))
+                    known.add(rec.get("contract", "").lower())
+                except Exception:
+                    continue
+    return known
+
+
+# 主流大币 — 不作为 alpha call 追踪，太常见
+_MAJOR_TOKENS = {
+    "BTC","ETH","SOL","XRP","BNB","USDT","USDC","DAI","MATIC",
+    "AVAX","DOT","ADA","DOGE","SHIB","LTC","LINK","UNI","AAVE",
+    "OP","ARB","SUI","APT","TRX","TON","NEAR","ATOM","FIL",
+    "BITCOIN","ETHEREUM","SOLANA","RIPPLE","CARDANO",
+}
+
+# 买入/看涨信号关键词
+_BULLISH_KW = {
+    "buy","long","bullish","entry","accumulate","load","gem","alpha",
+    "ape","degen","early","launch","fair launch","just launched",
+    "new token","contract","call","100x","1000x","moon","pump",
+    "买","做多","入场","看涨","抄底","喊单","发现","新币","合约",
+}
+
+
 def record_alpha_calls(new_tweets: list):
-    """对含合约地址的新推文，查 DexScreener 并记录 alpha call"""
-    # 延迟导入避免循环依赖 + 仅在需要时加载
+    """记录 alpha call：CA 地址 + 小币 symbol 喊单"""
     from dex_utils import lookup_dexscreener
 
-    known_contracts = load_known_contracts()
+    known = load_known_tweet_ids()
     now_iso = datetime.now(timezone.utc).isoformat()
     recorded = 0
 
     for tweet in new_tweets:
-        contracts = tweet.get("extracted_contracts", [])
-        if not contracts:
-            continue
+        tid = tweet.get("tweet_id", "")
+        text_lower = tweet.get("text", "").lower()
 
-        for addr in contracts:
+        # ── 路径1：有 CA 地址 ──────────────────────────────
+        for addr in tweet.get("extracted_contracts", []):
             addr_lower = addr.lower()
-            if addr_lower in known_contracts:
-                continue  # 已记录过，跳过（first caller 优先）
+            if addr_lower in known:
+                continue
 
-            # 查 DexScreener 获取发现价快照
             dex_info = lookup_dexscreener(addr)
             snapshot = None
             if dex_info:
@@ -268,22 +298,77 @@ def record_alpha_calls(new_tweets: list):
                 }
 
             call_record = {
-                "call_id": f"{tweet['tweet_id']}:{addr}",
-                "tweet_id": tweet["tweet_id"],
+                "call_id": f"{tid}:{addr}",
+                "tweet_id": tid,
                 "user_handle": tweet["user_handle"],
+                "call_type": "ca",
                 "contract": addr,
                 "tokens_mentioned": tweet.get("extracted_tokens", []),
                 "text_snippet": tweet["text"][:200],
                 "discovered_at": now_iso,
                 "discovery_snapshot": snapshot,
             }
-
             append_alpha_call(call_record)
-            known_contracts.add(addr_lower)
+            known.add(addr_lower)
             recorded += 1
+            sym = dex_info["symbol"] if dex_info else "?"
+            print(f"  📈 CA call: @{tweet['user_handle']} → ${sym} ({addr[:10]}...)")
 
-            symbol = dex_info["symbol"] if dex_info else "?"
-            print(f"  📈 Alpha call: @{tweet['user_handle']} → ${symbol} ({addr[:10]}...)")
+        # ── 路径2：小币 symbol 喊单（无 CA）──────────────────
+        # 条件：有非主流代币 + 含看涨关键词，且本推文未记录过
+        if tid in known:
+            continue
+
+        small_tokens = [
+            t for t in tweet.get("extracted_tokens", [])
+            if t.upper() not in _MAJOR_TOKENS and len(t) >= 2
+        ]
+        if not small_tokens:
+            continue
+
+        has_bullish = any(kw in text_lower for kw in _BULLISH_KW)
+        if not has_bullish:
+            continue
+
+        # 尝试 DexScreener symbol 搜索
+        snapshot = None
+        try:
+            import requests
+            for sym in small_tokens[:2]:
+                r = requests.get(
+                    f"https://api.dexscreener.com/latest/dex/search?q={sym}",
+                    timeout=5
+                )
+                pairs = r.json().get("pairs", [])
+                if pairs:
+                    p = pairs[0]
+                    snapshot = {
+                        "chain": p.get("chainId", "?"),
+                        "symbol": sym,
+                        "price_usd": float(p.get("priceUsd", 0) or 0),
+                        "market_cap": p.get("fdv"),
+                        "liquidity_usd": p.get("liquidity", {}).get("usd"),
+                        "volume_24h": p.get("volume", {}).get("h24"),
+                    }
+                    break
+        except Exception:
+            pass
+
+        call_record = {
+            "call_id": f"{tid}:token",
+            "tweet_id": tid,
+            "user_handle": tweet["user_handle"],
+            "call_type": "symbol",
+            "contract": None,
+            "tokens_mentioned": small_tokens,
+            "text_snippet": tweet["text"][:200],
+            "discovered_at": now_iso,
+            "discovery_snapshot": snapshot,
+        }
+        append_alpha_call(call_record)
+        known.add(tid)
+        recorded += 1
+        print(f"  📣 Symbol call: @{tweet['user_handle']} → ${', $'.join(small_tokens)}")
 
     if recorded:
         print(f"📊 记录 {recorded} 个新 alpha call")

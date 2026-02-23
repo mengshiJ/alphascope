@@ -203,8 +203,20 @@ def format_realtime_summary(tweets: list, profiles: dict) -> str:
         lines.append(format_co_signal_section(co_signals))
         lines.append("")
 
+    # Fix4: 信号质量过滤 — developer 类无代币低互动帖不展示
+    def _signal_worth_showing(t: dict) -> bool:
+        users = profiles.get("users", {})
+        cat = users.get(t["user_handle"], {}).get("category", "")
+        has_token = bool(t.get("extracted_tokens") or t.get("extracted_contracts"))
+        engagement = t["likes"] + t.get("retweets", 0) * 3
+        if cat == "developer":
+            return has_token or engagement >= 30
+        return True  # 其他类别全部展示
+
+    filtered_tweets = [t for t in tweets if _signal_worth_showing(t)]
+
     # 按互动排序展示推文（最多 15 条）
-    for i, t in enumerate(tweets[:15], 1):
+    for i, t in enumerate(filtered_tweets[:15], 1):
         emoji = get_category_emoji(t["user_handle"], profiles)
         handle = t["user_handle"]
         likes = t["likes"]
@@ -348,6 +360,34 @@ def format_alert(alert: dict) -> str:
     return "\n".join(lines)
 
 
+def _discord_send(content: str, channel_id: str, label: str = "") -> bool:
+    """直接通过 openclaw CLI 发送消息到 Discord 频道"""
+    import subprocess
+    if not channel_id:
+        print(f"⚠️ 跳过 Discord 发送 {label}：channel_id 未配置")
+        return False
+    # Discord 单条消息限制 2000 字符，超出截断
+    if len(content) > 1900:
+        content = content[:1900] + "\n…（内容已截断）"
+    try:
+        result = subprocess.run(
+            ["openclaw", "message", "send",
+             "--channel", "discord",
+             "--target", channel_id,
+             "--message", content],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0:
+            print(f"📤 已发送到 {label}")
+            return True
+        else:
+            print(f"⚠️ 发送失败 {label}: {result.stderr[:100]}")
+            return False
+    except Exception as e:
+        print(f"⚠️ 发送异常 {label}: {e}")
+        return False
+
+
 def main():
     """主函数"""
     print("=" * 60)
@@ -383,19 +423,23 @@ def main():
         sent_ids.add(a["tweet_id"])
     save_alerts_sent(sent_ids)
 
-    # 输出实时摘要（供 cron agent 发送到 #x-realtime）
+    # Fix2: 直接发送到 Discord，不依赖 cron agent 路由
+    _sent_realtime = _discord_send(summary, REALTIME_CHANNEL_ID, "#x-realtime")
+    if alerts:
+        for alert in alerts:
+            _discord_send(format_alert(alert), ALERTS_CHANNEL_ID, "#x-alerts")
+
+    # 同时保留 stdout 输出（便于日志查看）
     print("\n--- REALTIME_SUMMARY ---")
     print(summary)
     print("--- END ---")
-
-    # 输出紧急推送（供 cron agent 发送到 #x-alerts）
     if alerts:
         for alert in alerts:
             print("\n--- ALERT ---")
             print(format_alert(alert))
             print("--- END ---")
 
-    print(f"\n✅ 完成")
+    print(f"\n✅ 完成 (Discord {'✅' if _sent_realtime else '⚠️跳过'})")
 
 
 if __name__ == "__main__":
