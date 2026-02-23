@@ -9,7 +9,7 @@ Monitor 100+ Crypto KOLs on X/Twitter. Filter signal from noise. Track who's act
 ## One-line Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/GITHUB_USER/alphascope/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mengshiJ/alphascope/main/install.sh | bash
 ```
 
 The installer will:

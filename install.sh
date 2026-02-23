@@ -2,12 +2,12 @@
 # ============================================================
 #  AlphaScope — One-line Install
 #  Usage:
-#    curl -fsSL https://raw.githubusercontent.com/GITHUB_USER/alphascope/main/install.sh | bash
+#    curl -fsSL https://raw.githubusercontent.com/mengshiJ/alphascope/main/install.sh | bash
 # ============================================================
 set -e
 
-REPO_URL="https://github.com/GITHUB_USER/alphascope"
-RAW_URL="https://raw.githubusercontent.com/GITHUB_USER/alphascope/main"
+REPO_URL="https://github.com/mengshiJ/alphascope"
+RAW_URL="https://raw.githubusercontent.com/mengshiJ/alphascope/main"
 INSTALL_DIR="${HOME}/.openclaw/workspace/skills/x-cookie-browser"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
